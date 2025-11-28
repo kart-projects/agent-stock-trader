@@ -14,7 +14,7 @@ describe('AVAILABLE_MODELS', () => {
     const modelIds = AVAILABLE_MODELS.map(m => m.id);
     expect(modelIds).toContain('gemini-flash');
     expect(modelIds).toContain('groq-llama');
-    expect(modelIds).toContain('groq-mixtral');
+    expect(modelIds).toContain('groq-llama-small');
   });
 
   it('has required properties on all models', () => {
