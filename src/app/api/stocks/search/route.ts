@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { searchStocks } from '@/services/stockData';
+import { stockai } from '@/lib/stockai';
 
 export async function GET(request: Request) {
   try {
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const results = await searchStocks(query);
+    const results = await stockai.stocks.search(query);
 
     return NextResponse.json({
       success: true,

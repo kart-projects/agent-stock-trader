@@ -56,7 +56,7 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     name: 'Claude Sonnet 4',
     provider: 'anthropic',
     model: 'claude-sonnet-4-20250514',
-    enabled: false,
+    enabled: true,
     costPerMillionTokens: { input: 3, output: 15 },
   },
   {

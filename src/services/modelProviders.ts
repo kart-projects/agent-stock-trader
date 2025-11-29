@@ -1,12 +1,14 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Groq from 'groq-sdk';
 import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import type { ModelConfig } from '@/config/models';
 
 // Lazy initialization of clients to ensure env vars are loaded
 let google: GoogleGenerativeAI | null = null;
 let groq: Groq | null = null;
 let openai: OpenAI | null = null;
+let anthropic: Anthropic | null = null;
 
 function getGoogleClient(): GoogleGenerativeAI | null {
   if (google === null && process.env.GOOGLE_AI_API_KEY) {
@@ -27,6 +29,13 @@ function getOpenAIClient(): OpenAI | null {
     openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
   return openai;
+}
+
+function getAnthropicClient(): Anthropic | null {
+  if (anthropic === null && process.env.ANTHROPIC_API_KEY) {
+    anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  }
+  return anthropic;
 }
 
 export interface ModelQueryResult {
@@ -61,9 +70,8 @@ export async function queryModel(
       break;
 
     case 'anthropic':
-      throw new Error(
-        'Anthropic provider not configured. Add ANTHROPIC_API_KEY to enable.'
-      );
+      content = await queryAnthropic(config.model, prompt);
+      break;
 
     default:
       throw new Error(`Unknown provider: ${config.provider}`);
@@ -132,6 +140,26 @@ async function queryOpenAI(model: string, prompt: string): Promise<string> {
 }
 
 /**
+ * Query Anthropic Claude models
+ */
+async function queryAnthropic(model: string, prompt: string): Promise<string> {
+  const client = getAnthropicClient();
+  if (!client) {
+    throw new Error('Anthropic API key not configured');
+  }
+
+  const result = await client.messages.create({
+    model,
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  // Extract text from content blocks
+  const textContent = result.content.find(block => block.type === 'text');
+  return textContent?.type === 'text' ? textContent.text : '';
+}
+
+/**
  * Check which providers are available based on configured API keys
  */
 export function getAvailableProviders(): string[] {
@@ -140,6 +168,7 @@ export function getAvailableProviders(): string[] {
   if (getGoogleClient()) providers.push('google');
   if (getGroqClient()) providers.push('groq');
   if (getOpenAIClient()) providers.push('openai');
+  if (getAnthropicClient()) providers.push('anthropic');
 
   return providers;
 }
@@ -156,7 +185,7 @@ export function isProviderAvailable(provider: string): boolean {
     case 'openai':
       return getOpenAIClient() !== null;
     case 'anthropic':
-      return false; // Not implemented yet
+      return getAnthropicClient() !== null;
     default:
       return false;
   }

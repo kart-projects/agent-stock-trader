@@ -1,27 +1,26 @@
 import { NextResponse } from 'next/server';
-import { getStockData } from '@/services/stockData';
-import { analyzeWithAllModels } from '@/services/analysis';
+import { stockai } from '@/lib/stockai';
 
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ symbol: string }> }
 ) {
   try {
     const { symbol } = await params;
     const upperSymbol = symbol.toUpperCase();
 
-    // Fetch stock data first
-    const stockData = await getStockData(upperSymbol, '3mo');
+    // Get stock data for display
+    const stockData = await stockai.stocks.get(upperSymbol);
 
-    // Run multi-model analysis
-    const analysisResult = await analyzeWithAllModels(stockData);
+    // Run multi-model analysis via backend
+    const analysisResult = await stockai.analysis.run(upperSymbol);
 
     return NextResponse.json({
       success: true,
       data: {
         symbol: upperSymbol,
-        name: stockData.quote.name,
-        price: stockData.quote.price,
+        name: stockData.quote?.name || upperSymbol,
+        price: stockData.quote?.price || 0,
         analysis: analysisResult,
       },
     });
@@ -43,29 +42,25 @@ export async function GET(
 
 // POST endpoint for on-demand analysis with custom parameters
 export async function POST(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ symbol: string }> }
 ) {
   try {
     const { symbol } = await params;
     const upperSymbol = symbol.toUpperCase();
 
-    // Get optional parameters from request body
-    const body = await request.json().catch(() => ({}));
-    const period = body.period || '3mo';
+    // Get stock data for display
+    const stockData = await stockai.stocks.get(upperSymbol);
 
-    // Fetch stock data
-    const stockData = await getStockData(upperSymbol, period);
-
-    // Run multi-model analysis
-    const analysisResult = await analyzeWithAllModels(stockData);
+    // Run multi-model analysis via backend
+    const analysisResult = await stockai.analysis.run(upperSymbol);
 
     return NextResponse.json({
       success: true,
       data: {
         symbol: upperSymbol,
-        name: stockData.quote.name,
-        price: stockData.quote.price,
+        name: stockData.quote?.name || upperSymbol,
+        price: stockData.quote?.price || 0,
         analysis: analysisResult,
         requestedAt: new Date().toISOString(),
       },
