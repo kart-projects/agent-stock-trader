@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getStockData } from '@/services/stockData';
+import { stockai } from '@/lib/stockai';
 
 export async function GET(
   request: Request,
@@ -20,11 +20,20 @@ export async function GET(
       | '1y'
       | '5y';
 
-    const stockData = await getStockData(upperSymbol, period);
+    // Fetch stock data and history from backend via SDK
+    const [stockData, historyData] = await Promise.all([
+      stockai.stocks.get(upperSymbol),
+      stockai.stocks.getHistory(upperSymbol, { period }),
+    ]);
 
     return NextResponse.json({
       success: true,
-      data: stockData,
+      data: {
+        quote: stockData.quote,
+        technicalIndicators: stockData.technicals,
+        priceHistory: historyData.history,
+        news: [], // TODO: Add news endpoint to backend
+      },
     });
   } catch (error) {
     console.error('Error fetching stock data:', error);
